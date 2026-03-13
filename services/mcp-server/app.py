@@ -530,7 +530,7 @@ async def handle_tools_list() -> Dict[str, Any]:
     ============================================================================
     """
     tools = [
-        {
+        {   
             "name": "get_weather_forecast",
             "title": "Weather Forecast Provider",
             "description": "Hent værprognose for en destinasjon med nåværende forhold og 5-dagers varsling",
@@ -587,9 +587,24 @@ async def handle_tools_list() -> Dict[str, Any]:
                     }
                 }
             }
-        }
+        },
         # LEGG TIL DINE NYE TOOLS HER!
         # Bare kopier strukturen over og tilpass for ditt brukstilfelle
+        {
+            "name": "get_random_fact",
+            "description": "Get a random interesting fact",
+            "inputSchema": {
+                "type": "object",
+                "properties": {
+                    "category": {
+                        "type": "string",
+                        "enum": ["general", "space"],
+                        "description": "Category of fact"
+                    }
+                },
+                "required": ["category"]
+            }
+        }
     ]
 
     return {"tools": tools}
@@ -633,12 +648,62 @@ async def handle_tools_call(tool_name: str, arguments: Dict[str, Any]) -> Dict[s
             "isError": False
         }
 
+    elif tool_name == "get_random_fact":
+        result = await get_random_fact(arguments.get("category", "general"))
+
+        return {
+        "content": [{"type": "text", "text": json.dumps(result)}],
+        "isError": False
+        }
+
     else:
         # Ukjent tool
         return {
             "content": [{"type": "text", "text": f"Ukjent tool: {tool_name}"}],
             "isError": True
         }
+
+async def get_random_fact(category: Dict[str, Any]) -> Dict[str, Any]:
+    """Because every AI needs useless trivia."""
+    facts = {
+        "general": [
+            "Honey never spoils. 3000-year-old honey found in Egyptian tombs — still edible.",
+            "Octopuses have three hearts."
+        ],
+        "space": [
+            "A day on Venus is longer than its year.",
+            "Neutron stars are so dense a teaspoon weighs 6 billion tons."
+        ]
+    }
+    import random
+    return {
+        "category": category,
+        "fact": random.choice(facts.get(category, facts["general"])),
+        "timestamp": datetime.now().isoformat()
+    }
+
+
+# NEW MCP SERVER INTEGRATED TOWARDS NEWS API
+async def get_news(topic: str, language: str = "en") -> Dict[str, Any]:
+    """Fetch real news from NewsAPI."""
+    api_key = os.getenv("NEWS_API_KEY")
+    if not api_key:
+        return {"isError": True, "content": [{"type": "text", "text": "NEWS_API_KEY not set"}]}
+
+    async with httpx.AsyncClient() as client:
+        response = await client.get(
+            "https://newsapi.org/v2/everything",
+            params={"q": topic, "language": language, "apiKey": api_key},
+            timeout=10.0
+        )
+
+    articles = response.json().get("articles", [])[:3]
+    formatted = "\n".join([f"• {a['title']}\n  {a['url']}" for a in articles])
+
+    return {
+        "isError": False,
+        "content": [{"type": "text", "text": f"Latest on '{topic}':\n\n{formatted}"}]
+    }
 
 if __name__ == "__main__":
     logger.info("Starting MCP Server API Lab03 on port 8000...")

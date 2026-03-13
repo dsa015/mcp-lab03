@@ -107,7 +107,6 @@ class MicroserviceAgent:
             "endpoint": "/weather",
             "method": "POST"
         }
-
         OPENAI FUNCTION FORMAT (konvertert):
         {
             "type": "function",
@@ -433,20 +432,18 @@ class MicroserviceAgent:
             # Hent samtalehistorikk
             history = self.memory.get_conversation_history(self.current_session_id)
             
+           SYSTEM_PROMPT = """ You are a helpful travel assistant called Bob
+You help people plan trips by checking weather, finding news about destinations,
+and sharing interesting facts. You speak in an old, tone.
+When someone asks about a city, proactively offer to check the weather there.
+Always respond in the same language the user writes in."""
+
             # Bygg meldinger for OpenAI
             messages = [
                 {
                     "role": "system",
-                    "content": """Du er Ingrid, en vennlig og kompetent agent fra Ingrids Reisetjenester. 
-
-Du har kun lov å bruke ett verktøy, og det er det for å hente værinformasjon i hele verden. Hvis brukeren spør om noe annet enn vær, skal forespørselen avvises på en hyggelig måte.
-
-Du er fra Bergen og elsker regn, og dette passer du på å nevne i samtalen hvis det passer seg.
-Utover det, vær vennlig, personlig og hjelpsom - du representerer Ingrids Reisetjenester.
-Svar på norsk med mindre brukeren spør på et annet språk.
-
-MERK: Dette er LAB03 versjon med dynamisk tools discovery."""
-                }
+                    "content": SYSTEM_PROMPT
+                },
             ]
             
             # Legg til samtalehistorikk
@@ -459,7 +456,7 @@ MERK: Dette er LAB03 versjon med dynamisk tools discovery."""
             # Legg til ny brukermelding
             messages.append({"role": "user", "content": query})
             
-            # Første AI-kall med OpenAI
+            # Første AI-kall med OpenAIt
             response = self.client.chat.completions.create(
                 model="gpt-4o-mini",
                 messages=messages,
